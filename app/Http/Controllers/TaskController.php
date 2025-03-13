@@ -4,8 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Task;
 use Illuminate\Http\Request;
+use App\Http\Requests\StoreTaskRequest;
+use App\Http\Requests\UpdateTaskRequest;
+
 
 class TaskController extends Controller
+
 {
     // Получить список всех задач
     public function index()
@@ -14,15 +18,10 @@ class TaskController extends Controller
     }
 
     // создание новой задачи
-    public function store(Request $request)
+    public function store(StoreTaskRequest $request)
     {
-        $validated = $request->validate([
-            'title'       => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'completed'   => 'boolean'
-        ]);
-
-        $task = Task::create($validated);
+        // Данные уже валидированы
+        $task = Task::create($request->validated());
         return response()->json($task, 201);
     }
 
@@ -33,15 +32,9 @@ class TaskController extends Controller
     }
 
     // обновить задачу
-    public function update(Request $request, Task $task)
+    public function update(UpdateTaskRequest $request, Task $task)
     {
-        $validated = $request->validate([
-            'title'       => 'sometimes|required|string|max:255',
-            'description' => 'sometimes|nullable|string',
-            'completed'   => 'sometimes|boolean'
-        ]);
-
-        $task->update($validated);
+        $task->update($request->validated());
         return response()->json($task, 200);
     }
 
