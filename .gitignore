@@ -6,3 +6,6 @@ git rm -r --cached node_modules vendor public/storage storage/*.key .env .idea
 /vendor
 /public/storage
 /storage/*.key
+.idea
+/.phpunit.result.cache
+/phpunit.xml.bak
