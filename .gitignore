@@ -2,3 +2,7 @@
 .env
 echo -e "/node_modules\n/vendor\n/public/storage\n/storage/*.key\n.env\n.idea" >> .gitignore
 git rm -r --cached node_modules vendor public/storage storage/*.key .env .idea
+/node_modules
+/vendor
+/public/storage
+/storage/*.key
