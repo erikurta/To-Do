@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>To-Do App</title>
-    @vite('resources/js/app.js')
+    <script src="{{ asset('js/app.js') }}" defer></script>
 </head>
 <body>
 <div id="app">

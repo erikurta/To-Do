@@ -1,71 +1,43 @@
-import { createApp, ref, onMounted } from 'vue';
-import axios from 'axios';
+import Vue from 'vue';
 
-const app = createApp({
-    setup() {
-        const tasks = ref([]);
-        const newTaskTitle = ref('');
-        const newTaskDescription = ref('');
-
-        const getTasks = async () => {
-            try {
-                const response = await axios.get('/api/tasks');
-                tasks.value = response.data;
-            } catch (error) {
-                console.error('Ошибка при загрузке задач:', error);
-            }
-        };
-
-        const createTask = async () => {
-            if (!newTaskTitle.value.trim()) return;
-
-            try {
-                const response = await axios.post('/api/tasks', {
-                    title: newTaskTitle.value,
-                    description: newTaskDescription.value,
-                    completed: false
-                });
-
-                tasks.value.push(response.data);
-                newTaskTitle.value = '';
-                newTaskDescription.value = '';
-            } catch (error) {
-                console.error('Ошибка при добавлении задачи:', error);
-            }
-        };
-
-        const deleteTask = async (taskId) => {
-            try {
-                await axios.delete(`/api/tasks/${taskId}`);
-                tasks.value = tasks.value.filter(task => task.id !== taskId);
-            } catch (error) {
-                console.error('Ошибка при удалении задачи:', error);
-            }
-        };
-
-        const toggleTaskStatus = async (task) => {
-            try {
-                await axios.put(`/api/tasks/${task.id}`, {
-                    completed: !task.completed
-                });
-
-                task.completed = !task.completed;
-            } catch (error) {
-                console.error('Ошибка при изменении статуса задачи:', error);
-            }
-        };
-
-        onMounted(getTasks);
-
+new Vue({
+    el: '#app',
+    data() {
         return {
-            tasks,
-            newTaskTitle,
-            newTaskDescription,
-            createTask,
-            deleteTask,
-            toggleTaskStatus
+            newTaskTitle: '',
+            newTaskDescription: '',
+            tasks: [],
         };
+    },
+    methods: {
+        async fetchTasks() {
+            const response = await fetch('/api/tasks');
+            this.tasks = await response.json();
+        },
+        async createTask() {
+            if (!this.newTaskTitle) return;
+
+            const response = await fetch('/api/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: this.newTaskTitle,
+                    description: this.newTaskDescription,
+                }),
+            });
+
+            if (response.ok) {
+                this.newTaskTitle = '';
+                this.newTaskDescription = '';
+                this.fetchTasks();
+            }
+        },
+        async deleteTask(id) {
+            await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
+            this.fetchTasks();
+        }
+    },
+    mounted() {
+        this.fetchTasks();
     }
 });
-
-app.mount('#app');

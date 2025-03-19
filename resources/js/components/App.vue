@@ -1,34 +1,71 @@
+<template>
+  <div>
+    <h1>To-Do List</h1>
+
+    <ul>
+      <li v-for="task in tasks" :key="task.id">
+        <input type="checkbox" v-model="task.completed" @change="toggleTask(task)">
+        {{ task.title }}
+        <button @click="deleteTask(task.id)">Удалить</button>
+      </li>
+    </ul>
+
+    <input v-model="newTaskTitle" placeholder="Название задачи">
+    <button @click="addTask">Добавить задачу</button>
+  </div>
+</template>
+
 <script>
-import { fetchTasks, addTask, updateTask, deleteTask } from '../api.js';
+import axios from 'axios';
 
 export default {
   data() {
     return {
       tasks: [],
       newTaskTitle: '',
-      newTaskDescription: ''
     };
   },
-  mounted() {
-    fetchTasks().then(data => this.tasks = data);
+  created() {
+    this.fetchTasks();
   },
   methods: {
-    addNewTask() {
-      if (!this.newTaskTitle.trim()) return alert("Название не может быть пустым!");
-      addTask({ title: this.newTaskTitle, description: this.newTaskDescription, completed: false })
-          .then(newTask => {
-            this.tasks.push(newTask);
-            this.newTaskTitle = '';
-            this.newTaskDescription = '';
+    fetchTasks() {
+      axios.get('/api/tasks')
+          .then(response => {
+            this.tasks = response.data;
+          })
+          .catch(error => {
+            console.error("Ошибка загрузки задач:", error);
           });
     },
-    toggleTaskCompletion(task) {
-      updateTask(task).catch(error => console.error("Ошибка обновления", error));
+    addTask() {
+      if (!this.newTaskTitle.trim()) return;
+      axios.post('/api/tasks', { title: this.newTaskTitle, completed: false })
+          .then(response => {
+            this.tasks.push(response.data);
+            this.newTaskTitle = '';
+          })
+          .catch(error => {
+            console.error("Ошибка при добавлении задачи:", error);
+          });
     },
-    removeTask(taskId) {
-      deleteTask(taskId).then(() => {
-        this.tasks = this.tasks.filter(task => task.id !== taskId);
-      });
+    toggleTask(task) {
+      axios.put(`/api/tasks/${task.id}`, { completed: task.completed })
+          .then(() => {
+            console.log(`Задача ${task.id} обновлена`);
+          })
+          .catch(error => {
+            console.error("Ошибка обновления задачи:", error);
+          });
+    },
+    deleteTask(id) {
+      axios.delete(`/api/tasks/${id}`)
+          .then(() => {
+            this.tasks = this.tasks.filter(task => task.id !== id);
+          })
+          .catch(error => {
+            console.error("Ошибка удаления задачи:", error);
+          });
     }
   }
 };
