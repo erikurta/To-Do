@@ -38,7 +38,6 @@ COPY --from=build /app/public/js /var/www/html/public/js
 
 RUN php artisan config:clear && \
     php artisan key:generate && \
-    php artisan migrate --force
 
 EXPOSE 80
 CMD ["apache2-foreground"]
