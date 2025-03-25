@@ -20,3 +20,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('todo'); // Вернёт шаблон todo.blade.php
 });
+
+Route::get('/init', function () {
+    \Artisan::call('deploy:init');
+    return 'App initialized';
+});
