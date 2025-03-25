@@ -1,19 +1,22 @@
-# Сборочный этап для frontend (если используешь Laravel Mix)
-FROM node:18 as build
+# Этап 1: Build frontend
+FROM node:16 AS build
 
-# Установка зависимостей и сборка фронта
 WORKDIR /app
-COPY package*.json webpack.mix.js ./
-COPY resources ./resources
-RUN npm install && npm run prod
 
-# Основной этап — Laravel + Apache
+COPY package*.json ./
+COPY webpack.mix.js ./
+COPY resources/ resources/
+
+RUN npm install
+RUN npm run prod
+
+# Этап 2: PHP + Apache
 FROM php:8.2-apache
 
-# Установка необходимых расширений
+# Установка нужных расширений
 RUN apt-get update && apt-get install -y \
-    libpq-dev unzip curl git zip && \
-    docker-php-ext-install pdo pdo_pgsql
+    libpq-dev unzip curl git zip libzip-dev \
+    && docker-php-ext-install pdo pdo_pgsql
 
 # Установка Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -22,23 +25,22 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY . /var/www/html
 WORKDIR /var/www/html
 
-# Включаем mod_rewrite
-RUN a2enmod rewrite
-
-# Меняем DocumentRoot
-RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
-
-# Настройка прав доступа
-RUN chmod -R 775 storage bootstrap/cache && \
-    chown -R www-data:www-data storage bootstrap/cache
-
-# Копирование frontend сборки
+# Копирование собранного фронта
 COPY --from=build /app/public/js /var/www/html/public/js
+COPY --from=build /app/mix-manifest.json /var/www/html/public/mix-manifest.json
 
-# Копирование стартового скрипта
+# Настройка Apache
+RUN a2enmod rewrite && \
+    sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
+
+# Права
+RUN chmod -R 775 storage bootstrap/cache
+
+# Установка PHP-зависимостей
+RUN composer install --no-dev --optimize-autoloader
+
+# Копирование и настройка entrypoint
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Указываем CMD
-EXPOSE 80
 CMD ["/entrypoint.sh"]
