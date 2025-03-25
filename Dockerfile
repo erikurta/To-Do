@@ -31,6 +31,7 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 
 # Устанавливаем зависимости PHP и Node
 RUN composer install --no-dev --optimize-autoloader
+RUN php artisan key:generate
 RUN npm install
 RUN npm run prod
 
