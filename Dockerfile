@@ -33,10 +33,9 @@ RUN composer install --no-dev --optimize-autoloader \
     && npm install \
     && npm run production
 
-# Генерация ключа и миграции
-RUN php artisan config:clear && \
-    php artisan key:generate && \
-    php artisan migrate --force
+# Копируем и запускаем стартовый скрипт
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
 
 EXPOSE 80
-CMD ["apache2-foreground"]
+CMD ["/start.sh"]
