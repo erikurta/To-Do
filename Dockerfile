@@ -1,7 +1,7 @@
 FROM php:8.2-apache
 
 # Установка нужных расширений
-RUN docker-php-ext-install pdo pdo_mysql
+RUN docker-php-ext-install pdo pdo_pgsql
 
 # Установка Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -16,17 +16,13 @@ RUN a2enmod rewrite
 # Настройка DocumentRoot
 RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
 
-# Разрешаем права для storage и cache
+# Права
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Установка зависимостей PHP и JS
-RUN composer install --no-dev --optimize-autoloader && \
-    npm install && \
-    npm run prod
+# Установка PHP-зависимостей
+RUN composer install --no-dev --optimize-autoloader
 
-# Генерация ключа приложения
-RUN php artisan key:generate && \
-    php artisan migrate --force
+# НЕ запускаем миграции здесь — позже через shell
 
 EXPOSE 80
 CMD ["apache2-foreground"]
