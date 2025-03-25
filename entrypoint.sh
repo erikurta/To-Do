@@ -1,14 +1,8 @@
 #!/bin/bash
 
-# Генерим APP_KEY, если не установлен
-if ! grep -q "^APP_KEY=base64:" .env; then
-  echo "⚙️ Генерируем ключ..."
-  php artisan key:generate --force
-fi
+php artisan config:clear
+php artisan key:generate
 
-# Даем права на storage и bootstrap/cache
-chmod -R 775 storage bootstrap/cache
+php artisan migrate --force || true
 
-# Запускаем Apache
-echo "🚀 Запуск Apache..."
 exec apache2-foreground
