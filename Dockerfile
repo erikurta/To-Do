@@ -36,8 +36,7 @@ RUN composer install --no-dev --optimize-autoloader
 # Копируем только JS (если CSS не нужен)
 COPY --from=build /app/public/js /var/www/html/public/js
 
-RUN php artisan config:clear && \
-    php artisan key:generate && \
+RUN php artisan config:clear && php artisan key:generate
 
 EXPOSE 80
 CMD ["apache2-foreground"]
