@@ -1,52 +1,44 @@
-# Stage 1 — Build frontend
+# Сборочный этап для frontend (если используешь Laravel Mix)
 FROM node:18 as build
 
+# Установка зависимостей и сборка фронта
 WORKDIR /app
-
-# Копируем package.json и package-lock.json
-COPY package*.json ./
-
-# Устанавливаем зависимости и собираем проект
+COPY package*.json webpack.mix.js ./
+COPY resources ./resources
 RUN npm install && npm run prod
 
-# Stage 2 — PHP + Apache
+# Основной этап — Laravel + Apache
 FROM php:8.2-apache
 
-# Установка зависимостей
+# Установка необходимых расширений
 RUN apt-get update && apt-get install -y \
-    libpq-dev \
-    unzip \
-    git \
-    curl \
-    libzip-dev \
-    zip \
-    && docker-php-ext-install pdo pdo_pgsql
-
-# Включаем модуль Apache mod_rewrite
-RUN a2enmod rewrite
-
-# Настройка DocumentRoot
-RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
+    libpq-dev unzip curl git zip && \
+    docker-php-ext-install pdo pdo_pgsql
 
 # Установка Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Копируем Laravel-проект
+# Копирование проекта
 COPY . /var/www/html
 WORKDIR /var/www/html
 
-# Устанавливаем PHP-зависимости
-RUN composer install --no-dev --optimize-autoloader
+# Включаем mod_rewrite
+RUN a2enmod rewrite
 
-# Копируем собранные ассеты из первого stage
+# Меняем DocumentRoot
+RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
+
+# Настройка прав доступа
+RUN chmod -R 775 storage bootstrap/cache && \
+    chown -R www-data:www-data storage bootstrap/cache
+
+# Копирование frontend сборки
 COPY --from=build /app/public/js /var/www/html/public/js
 
-# Назначаем нужные права
-RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
-
-# Копируем скрипт запуска
+# Копирование стартового скрипта
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Указываем CMD (запускаем Apache после artisan команд)
+# Указываем CMD
+EXPOSE 80
 CMD ["/entrypoint.sh"]
