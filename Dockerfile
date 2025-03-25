@@ -1,16 +1,22 @@
+FROM node:18 as build
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+RUN npm run prod
+
+
 FROM php:8.2-apache
 
-# Установка системных зависимостей и Node.js
+# Установка нужных пакетов и расширений PHP
 RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    unzip \
-    zip \
     libpq-dev \
-    libzip-dev \
-    nodejs \
-    npm \
-    && docker-php-ext-install pdo_pgsql zip
+    unzip \
+    git \
+    && docker-php-ext-install pdo pdo_pgsql
 
 # Установка Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -19,23 +25,26 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY . /var/www/html
 WORKDIR /var/www/html
 
-# Права на storage и bootstrap/cache
-RUN chown -R www-data:www-data storage bootstrap/cache
+# Копирование собранного фронта
+COPY --from=build /app/public/js /var/www/html/public/js
+COPY --from=build /app/public/css /var/www/html/public/css
 
-# Включаем mod_rewrite
-RUN a2enmod rewrite
+# Apache конфиг
+RUN a2enmod rewrite \
+ && sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
 
-# Меняем DocumentRoot на /public
-RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
+# Разрешения
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Установка PHP и JS-зависимостей
-RUN composer install --no-dev --optimize-autoloader \
-    && npm install \
-    && npm run production
+# Установка зависимостей PHP
+RUN composer install --no-dev --optimize-autoloader
 
-# Копируем и запускаем стартовый скрипт
-COPY start.sh /start.sh
-RUN chmod +x /start.sh
+# Генерация ключа и миграции
+RUN php artisan config:clear && \
+    if [ ! -f .env ]; then cp .env.example .env; fi && \
+    php artisan key:generate && \
+    php artisan migrate --force || true
 
 EXPOSE 80
-CMD ["/start.sh"]
+
+CMD ["apache2-foreground"]
