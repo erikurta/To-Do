@@ -1,6 +1,11 @@
 #!/bin/bash
 
-php artisan config:clear
-php artisan migrate --force || true
+# Выдаём права
+chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-exec apache2-foreground
+# Кэш очищаем на всякий случай
+php artisan config:clear
+
+# Запускаем Apache
+apache2-foreground
