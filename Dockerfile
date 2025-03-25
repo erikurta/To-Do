@@ -27,8 +27,6 @@ WORKDIR /var/www/html
 
 # Копирование собранного фронта
 COPY --from=build /app/public/js /var/www/html/public/js
-COPY --from=build /app/public/css /var/www/html/public/css
-
 # Apache конфиг
 RUN a2enmod rewrite \
  && sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
