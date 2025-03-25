@@ -1,42 +1,50 @@
+# Используем PHP с Apache
 FROM php:8.2-apache
 
-# Установка системных зависимостей
+# Устанавливаем необходимые расширения PHP
 RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    unzip \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
     zip \
-    libzip-dev \
-    nodejs \
+    unzip \
+    curl \
+    git \
     npm \
+    nodejs \
     && docker-php-ext-install pdo pdo_mysql
 
-# Установка Composer
+# Устанавливаем Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Копируем проект в контейнер
+# Копируем код проекта
 COPY . /var/www/html
 
-# Устанавливаем рабочую директорию
+# Рабочая директория
 WORKDIR /var/www/html
 
-# Включаем mod_rewrite
+# Включаем модуль Apache для работы с .htaccess
 RUN a2enmod rewrite
 
-# Меняем DocumentRoot на /public
+# Указываем Laravel, где находится public директория
 RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
 
-# Назначаем права для Laravel
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+# Устанавливаем права доступа
+RUN chown -R www-data:www-data \
+    /var/www/html/storage \
+    /var/www/html/bootstrap/cache
 
-# Устанавливаем зависимости PHP и Node
-RUN composer install --no-dev --optimize-autoloader
+# Устанавливаем зависимости PHP
+RUN composer install --optimize-autoloader --no-dev
+
+# Устанавливаем зависимости Node.js и компилируем фронт
+RUN npm install && npm run production
+
+# Генерируем ключ Laravel автоматически
 RUN php artisan key:generate
-RUN npm install
-RUN npm run prod
 
-# Открываем порт 80
+# Экспонируем порт
 EXPOSE 80
 
-# Запуск Apache
+# Стартуем Apache в foreground-режиме
 CMD ["apache2-foreground"]
