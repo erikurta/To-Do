@@ -30,3 +30,7 @@ coverage/
 .DS_Store
 
 public/js/
+
+echo "node_modules/" >> .gitignore
+echo "public/js/" >> .gitignore
+echo "public/mix-manifest.json" >> .gitignore/vendor
